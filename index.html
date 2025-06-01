@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MVW |Todo Douceur</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        softOrange: '#FFD8A8',
+                        lightOrange: '#FFB770',
+                        mediumOrange: '#FF975A',
+                        deepOrange: '#FF7733',
+                        warmBackground: '#FFF9F2',
+                        subtleOrange: '#FFF0E1',
+                        softGreen: '#9adebd',
+                        mediumGreen: '#5BBF96',
+                        deepGreen: '#3b8b66'
+                    },
+                    animation: {
+                        'slide-in': 'slideIn 0.5s ease-out forwards',
+                        'fade-in': 'fadeIn 0.6s ease-in forwards',
+                        'bounce-light': 'bounce 1s infinite',
+                        'pulse-soft': 'pulseSoft 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
+                    },
+                    keyframes: {
+                        slideIn: {
+                            '0%': { transform: 'translateY(20px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' }
+                        },
+                        fadeIn: {
+                            '0%': { opacity: '0' },
+                            '100%': { opacity: '1' }
+                        },
+                        bounce: {
+                            '0%, 100%': { transform: 'translateY(-5%)', animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)' },
+                            '50%': { transform: 'translateY(0)', animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)' }
+                        },
+                        pulseSoft: {
+                            '0%, 100%': { opacity: '1' },
+                            '50%': { opacity: '0.7' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #FFD8A8 0%, #FFB770 50%, #FF975A 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .task-item {
+            transition: all 0.4s ease;
+        }
+        
+        .task-complete {
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        
+        .gradient-bg {
+            background: linear-gradient(135deg, #FFD8A8 0%, #FFB770 50%, #FF975A 100%);
+        }
+        
+        .task-enter {
+            animation: slide-in 0.4s ease-out;
+        }
+        
+        .task-exit {
+            animation: fadeOut 0.4s ease-in forwards;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                transform: translateX(20px);
+            }
+        }
+        
+        .checkbox-custom {
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border: 2px solid #FF7733;
+            border-radius: 50%;
+            background-color: transparent;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .checkbox-custom:checked {
+            background-color: #FF7733;
+            border-color: #FF7733;
+        }
+        
+        .checkbox-custom:checked::after {
+            content: '';
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            width: 10px;
+            height: 6px;
+            border: 2px solid white;
+            border-top: none;
+            border-right: none;
+            transform: rotate(-45deg);
+        }
+        
+        input:focus {
+            outline: 2px solid #FFB770;
+            outline-offset: 2px;
+        }
+        
+        .switch-container input:checked + .switch-bg {
+            background-color: #FF7733;
+            border-color: #FF7733;
+        }
+        
+        .switch-container input:checked + .switch-bg .switch-dot {
+            transform: translateX(20px);
+        }
+        
+        .auth-card {
+            transform: scale(0.98);
+            opacity: 0;
+            animation: slide-in 0.6s ease-out forwards;
+            animation-delay: 0.2s;
+        }
+        
+        .auth-card:nth-child(2) {
+            animation-delay: 0.3s;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 183, 112, 0.2);
+            border-radius: 10px;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #FFB770;
+            border-radius: 10px;
+        }
+        
+        .empty-state {
+            animation: fade-in 1.5s ease-in, bounce-light 2s 3;
+        }
+        
+        .switch-container {
+            position: relative;
+            display: inline-block;
+            width: 45px;
+            height: 24px;
+        }
+        
+        .switch-container input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .switch-bg {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ddd;
+            border: 2px solid #E5E7EB;
+            border-radius: 20px;
+            transition: .4s;
+        }
+        
+        .switch-dot {
+            position: absolute;
+            height: 16px;
+            width: 16px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            border-radius: 50%;
+            transition: .4s;
+        }
+        
+        .orange-shadow {
+            box-shadow: 0 4px 15px rgba(255, 119, 51, 0.2);
+        }
+        
+        .green-shadow {
+            box-shadow: 0 4px 15px rgba(59, 139, 102, 0.2);
+        }
+        
+        .slide-in-left {
+            animation: slideInLeft 0.5s ease-out forwards;
+        }
+        
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .form-container {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.8s ease-in-out;
+        }
+        
+        .active-form {
+            max-height: 1000px;
+        }
+        
+        .form-toggle-btn {
+            transition: all 0.3s ease;
+            padding: 12px 24px;
+            border-radius: 12px;
+        }
+        
+        .form-toggle-btn.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 10px rgba(255, 119, 51, 0.15);
+        }
+        
+        .animate-shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-5px); }
+            40%, 80% { transform: translateX(5px); }
+        }
+        
+        .confetti {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background-color: #fcee54;
+            opacity: 0.8;
+            border-radius: 0;
+            z-index: 20;
+            animation: fall linear infinite;
+        }
+        
+        @keyframes fall {
+            to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+            }
+        }
+        
+        .floating {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+        
+        .funny-message {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 20px;
+            padding: 5px 15px;
+            display: inline-block;
+            backdrop-filter: blur(10px);
+        }
+        
+        .name-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;
+        }
+        
+        .name-option {
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .name-option:hover, .name-option.selected {
+            background: rgba(255, 255, 255, 0.4);
+            border-color: #FF7733;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(255, 119, 51, 0.2);
+        }
+        
+        .custom-name-input {
+            width: 100%;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 15px;
+        }
+        
+        .custom-name-input:focus {
+            border-color: #FF7733;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+        }
+        
+        .password-container {
+            position: relative;
+        }
+        
+        .toggle-password {
+            position: absolute;
+            right: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #6b7280;
+        }
+        
+        .user-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #FFD8A8 0%, #FFB770 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 20px;
+            color: white;
+        }
+        
+        .auth-form input {
+            width: 100%;
+            padding: 12px 15px;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+            font-size: 16px;
+        }
+        
+        .auth-form input:focus {
+            border-color: #FF7733;
+            background: rgba(255, 255, 255, 0.3);
+            outline: none;
+        }
+        
+        .form-tabs {
+            display: flex;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        
+        .form-tab {
+            flex: 1;
+            text-align: center;
+            padding: 12px 0;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .form-tab.active {
+            background: rgba(255, 255, 255, 0.4);
+            font-weight: 600;
+        }
+        
+        .password-strength {
+            height: 5px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            margin-top: 5px;
+            overflow: hidden;
+        }
+        
+        .strength-bar {
+            height: 100%;
+            width: 0;
+            transition: width 0.3s;
+        }
+        
+        .weak { background-color: #ef4444; width: 33%; }
+        .medium { background-color: #f59e0b; width: 66%; }
+        .strong { background-color: #10b981; width: 100%; }
+        
+        /* Correction pour afficher le contenu */
+        .force-visible {
+            display: block !important;
+        }
+        
+        .force-hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <!-- Section pour la gestion des comptes - rendue visible par défaut -->
+    <div id="account-section" class="w-full max-w-md">
+        <div class="text-center mb-8 animate-fade-in">
+            <div class="mx-auto bg-gradient-to-r from-softGreen to-mediumGreen rounded-full p-5 inline-flex shadow-lg green-shadow floating">
+                <i class="fas fa-user-shield text-4xl text-white"></i>
+            </div>
+            <h1 class="text-4xl font-bold mt-6 text-white drop-shadow">
+                Gestion du compte
+            </h1>
+            <p class="text-white text-opacity-90 mt-2">
+                Connectez-vous à votre compte ou créez-en un nouveau
+            </p>
+        </div>
+        
+        <!-- Onglets pour Connexion/Inscription -->
+        <div class="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-6 shadow-lg mb-6">
+            <div class="form-tabs">
+                <div class="form-tab active" id="login-tab">Connexion</div>
+                <div class="form-tab" id="signup-tab">Inscription</div>
+            </div>
+            
+            <!-- Formulaire de connexion -->
+            <div id="login-form">
+                <div class="auth-form">
+                    <input type="text" id="login-username" placeholder="Nom d'utilisateur">
+                    
+                    <div class="password-container">
+                        <input type="password" id="login-password" placeholder="Mot de passe">
+                        <span class="toggle-password" id="toggle-login-password">
+                            <i class="far fa-eye"></i>
+                        </span>
+                    </div>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center">
+                            <input type="checkbox" id="remember-me" class="mr-2">
+                            <label for="remember-me" class="text-sm text-orange-700">Se souvenir de moi</label>
+                        </div>
+                        
+                        <a href="#" class="text-sm text-mediumGreen font-medium">Mot de passe oublié ?</a>
+                    </div>
+                    
+                    <button id="login-btn" class="w-full bg-gradient-to-r from-mediumGreen to-deepGreen text-white py-3 rounded-xl font-bold shadow-md transform hover:scale-[1.02] transition-transform">
+                        Se connecter
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Formulaire d'inscription -->
+            <div id="signup-form" class="hidden">
+                <div class="auth-form">
+                    <input type="text" id="signup-username" placeholder="Choisissez un nom d'utilisateur">
+                    <p id="username-availability" class="text-xs mb-2 text-right h-4"></p>
+                    
+                    <div class="password-container">
+                        <input type="password" id="signup-password" placeholder="Créez un mot de passe">
+                        <span class="toggle-password" id="toggle-signup-password">
+                            <i class="far fa-eye"></i>
+                        </span>
+                    </div>
+                    
+                    <div class="password-strength">
+                        <div id="strength-bar" class="strength-bar"></div>
+                    </div>
+                    <p id="password-strength-text" class="text-xs mb-4 text-right h-4"></p>
+                    
+                    <div class="password-container">
+                        <input type="password" id="confirm-password" placeholder="Confirmez le mot de passe">
+                        <span class="toggle-password" id="toggle-confirm-password">
+                            <i class="far fa-eye"></i>
+                        </span>
+                    </div>
+                    <p id="password-match" class="text-xs mb-4 text-right h-4"></p>
+                    
+                    <button id="signup-btn" class="w-full bg-gradient-to-r from-mediumOrange to-deepOrange text-white py-3 rounded-xl font-bold shadow-md transform hover:scale-[1.02] transition-transform">
+                        Créer mon compte
+                    </button>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-orange-700">Vos données seront sauvegardées localement</p>
+            </div>
+        </div>
+        
+        <!-- Section Google -->
+        <div class="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+            <div class="flex items-center justify-center">
+                <div class="flex-grow border-t border-orange-200"></div>
+                <span class="text-sm text-orange-400 px-4">Ou</span>
+                <div class="flex-grow border-t border-orange-200"></div>
+            </div>
+            
+            <button id="google-signin-btn" class="w-full mt-4 bg-white rounded-xl px-4 py-4 text-orange-700 font-bold shadow-sm border border-orange-200 flex items-center justify-center gap-3 hover:bg-orange-50 transition-colors transform hover:-translate-y-0.5">
+                <i class="fab fa-google text-orange-500 text-xl"></i>
+                Se connecter avec Google
+            </button>
+            
+            <p class="text-center text-xs text-orange-600 mt-3">
+                Nous utiliserons votre compte Google pour sauvegarder vos tâches
+            </p>
+        </div>
+        
+        <div class="text-center mt-8 text-white text-opacity-80">
+            <p>✨ Un compte, toutes vos tâches sauvegardées ✨</p>
+        </div>
+    </div>
+    
+    <!-- Section d'accueil pour le choix du nom (seulement après Google) -->
+    <div id="welcome-section" class="hidden w-full max-w-md px-4">
+        <div class="text-center mb-8 animate-fade-in">
+            <div class="mx-auto bg-white rounded-full p-5 inline-flex shadow-lg orange-shadow floating">
+                <i class="fas fa-signature text-4xl text-deepOrange"></i>
+            </div>
+            <h1 class="text-4xl font-bold mt-6 text-white drop-shadow">
+                Bienvenue !
+            </h1>
+            <p class="text-white text-opacity-90 mt-2">
+                Comment souhaitez-vous qu'on vous appelle ?
+            </p>
+        </div>
+        
+        <!-- Card pour choisir le nom -->
+        <div class="bg-white bg-opacity-95 backdrop-blur-sm rounded-2xl p-7 shadow-lg mb-6">
+            <h2 class="text-2xl font-semibold text-deepOrange mb-6 text-center">
+                Choisissez votre nom
+            </h2>
+            
+            <!-- Suggestions de noms -->
+            <div class="mb-6">
+                <p class="text-center text-orange-700 mb-4">Ou soyez créatif !</p>
+                <div class="name-options mb-6">
+                    <div class="name-option" data-name="Super Héros">Super Héros</div>
+                    <div class="name-option" data-name="Champion">Champion</div>
+                    <div class="name-option" data-name="Patron">Patron</div>
+                    <div class="name-option" data-name="Maestro">Maestro</div>
+                    <div class="name-option" data-name="Gourou">Gourou</div>
+                    <div class="name-option" data-name="Ninja">Ninja</div>
+                </div>
+                
+                <input 
+                    type="text" 
+                    id="custom-name" 
+                    class="custom-name-input" 
+                    placeholder="Écrivez votre nom personnalisé..."
+                >
+            </div>
+            
+            <div class="text-center mb-3">
+                <div class="flex items-center justify-center">
+                    <div class="flex-grow border-t border-orange-200"></div>
+                    <span class="text-sm text-orange-400 px-4">Ensuite</span>
+                    <div class="flex-grow border-t border-orange-200"></div>
+                </div>
+            </div>
+            
+            <!-- Bouton Google -->
+            <div class="mt-4">
+                <button id="finish-setup-btn" class="w-full bg-gradient-to-r from-mediumOrange to-deepOrange text-white py-3 rounded-xl font-bold shadow-md">
+                    Terminer la configuration
+                </button>
+            </div>
+        </div>
+        
+        <div class="text-center mt-8 text-white text-opacity-80">
+            <p>✨ Faites de chaque tâche un moment de douceur ✨</p>
+        </div>
+    </div>
+    
+    <!-- Contenu de l'application après authentification -->
+    <div id="app-content" class="hidden w-full max-w-3xl">
+        <!-- Contenu sera inséré ici -->
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log("Application démarrée");
+
+            // Système de sauvegarde des utilisateurs
+            // Structure : 
+            //   users: [
+            //     {
+            //       username: "nom_utilisateur",
+            //       password: "mot_de_passe_hashe",
+            //       displayName: "Nom affiché",
+            //       tasks: []
+            //     }
+            //   ]
+            
+            // Fonction pour sauvegarder les utilisateurs dans localStorage
+            function saveUsers(users) {
+                localStorage.setItem('users', JSON.stringify(users));
+            }
+            
+            // Fonction pour récupérer les utilisateurs de localStorage
+            function getUsers() {
+                const users = JSON.parse(localStorage.getItem('users')) || [];
+                return users;
+            }
+            
+            // Fonction pour hacher un mot de passe (simple démo)
+            function hashPassword(password) {
+                // Dans une vraie application, utiliser bcrypt ou autre
+                // Ici simple transformation pour démo
+                return btoa(encodeURIComponent(password).split('').reverse().join(''));
+            }
+            
+            // Fonction pour vérifier un mot de passe
+            function verifyPassword(password, hashedPassword) {
+                return hashPassword(password) === hashedPassword;
+            }
+            
+            // Fonction pour afficher l'interface appropriée
+            function initAuthInterface() {
+                const accountSection = document.getElementById('account-section');
+                const appContent = document.getElementById('app-content');
+                const welcomeSection = document.getElementById('welcome-section');
+                
+                // Vérifier si un utilisateur est connecté
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                
+                console.log("Utilisateur actuel :", currentUser);
+                
+                if (currentUser) {
+                    showApp();
+                } else {
+                    // Afficher la gestion des comptes
+                    accountSection.classList.remove('hidden');
+                    appContent.classList.add('hidden');
+                    welcomeSection.classList.add('hidden');
+                }
+            }
+            
+            // Initialisation de la gestion de compte
+            initAuthInterface();
+            
+            // Éléments de gestion de compte
+            const loginTab = document.getElementById('login-tab');
+            const signupTab = document.getElementById('signup-tab');
+            const loginForm = document.getElementById('login-form');
+            const signupForm = document.getElementById('signup-form');
+            
+            // Gestion des onglets
+            loginTab.addEventListener('click', () => {
+                loginTab.classList.add('active');
+                signupTab.classList.remove('active');
+                loginForm.classList.remove('hidden');
+                signupForm.classList.add('hidden');
+            });
+            
+            signupTab.addEventListener('click', () => {
+                signupTab.classList.add('active');
+                loginTab.classList.remove('active');
+                signupForm.classList.remove('hidden');
+                loginForm.classList.add('hidden');
+            });
+            
+            // Toggle visibilité du mot de passe
+            document.querySelectorAll('.toggle-password').forEach(toggle => {
+                toggle.addEventListener('click', function() {
+                    const passwordInput = this.previousElementSibling;
+                    const icon = this.querySelector('i');
+                    
+                    if (passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        icon.classList.remove('fa-eye');
+                        icon.classList.add('fa-eye-slash');
+                    } else {
+                        passwordInput.type = 'password';
+                        icon.classList.remove('fa-eye-slash');
+                        icon.classList.add('fa-eye');
+                    }
+                });
+            });
+            
+            // Vérification de l'identifiant pendant la saisie
+            document.getElementById('signup-username').addEventListener('input', function() {
+                const username = this.value.trim();
+                const availabilityEl = document.getElementById('username-availability');
+                
+                if (username === '') {
+                    availabilityEl.textContent = '';
+                    availabilityEl.className = 'text-xs mb-2 text-right h-4';
+                    return;
+                }
+                
+                const users = getUsers();
+                const exists = users.some(user => user.username === username);
+                
+                if (exists) {
+                    availabilityEl.textContent = '⛔ Ce nom est déjà pris';
+                    availabilityEl.className = 'text-xs mb-2 text-right h-4 text-red-600';
+                } else if (username.length < 3) {
+                    availabilityEl.textContent = '⚠ Trop court (min 3 caractères)';
+                    availabilityEl.className = 'text-xs mb-2 text-right h-4 text-yellow-600';
+                } else {
+                    availabilityEl.textContent = '✅ Disponible';
+                    availabilityEl.className = 'text-xs mb-2 text-right h-4 text-green-600';
+                }
+            });
+            
+            // Force du mot de passe
+            document.getElementById('signup-password').addEventListener('input', function() {
+                const password = this.value;
+                const strengthBar = document.getElementById('strength-bar');
+                const strengthText = document.getElementById('password-strength-text');
+                
+                if (password.length === 0) {
+                    strengthBar.className = 'strength-bar';
+                    strengthText.textContent = '';
+                    return;
+                }
+                
+                // Calcul basique de la force du mot de passe
+                let strength = 0;
+                
+                // Critères de force
+                const hasLength = password.length >= 8;
+                const hasUpper = /[A-Z]/.test(password);
+                const hasLower = /[a-z]/.test(password);
+                const hasNumber = /\d/.test(password);
+                const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+                
+                // Calcul du score
+                if (hasLength) strength += 1;
+                if (hasUpper) strength += 1;
+                if (hasLower) strength += 1;
+                if (hasNumber) strength += 1;
+                if (hasSpecial) strength += 1;
+                
+                // Mise à jour de la barre de progression et du texte
+                if (strength <= 2) {
+                    strengthBar.className = 'strength-bar weak';
+                    strengthText.textContent = 'Faible';
+                    strengthText.className = 'text-xs mb-4 text-right h-4 text-red-600';
+                } else if (strength === 3) {
+                    strengthBar.className = 'strength-bar medium';
+                    strengthText.textContent = 'Moyen';
+                    strengthText.className = 'text-xs mb-4 text-right h-4 text-yellow-600';
+                } else {
+                    strengthBar.className = 'strength-bar strong';
+                    strengthText.textContent = 'Fort';
+                    strengthText.className = 'text-xs mb-4 text-right h-4 text-green-600';
+                }
+            });
+            
+            // Confirmation du mot de passe
+            document.getElementById('confirm-password').addEventListener('input', function() {
+                const password = document.getElementById('signup-password').value;
+                const confirmation = this.value;
+                const matchEl = document.getElementById('password-match');
+                
+                if (confirmation === '') {
+                    matchEl.textContent = '';
+                    return;
+                }
+                
+                if (password !== confirmation) {
+                    matchEl.textContent = '⚠ Les mots de passe ne correspondent pas';
+                    matchEl.className = 'text-xs mb-4 text-right h-4 text-red-600';
+                } else {
+                    matchEl.textContent = '✅ Correspondance';
+                    matchEl.className = 'text-xs mb-4 text-right h-4 text-green-600';
+                }
+            });
+            
+            // Connexion
+            document.getElementById('login-btn').addEventListener('click', loginUser);
+            
+            function loginUser() {
+                const username = document.getElementById('login-username').value.trim();
+                const password = document.getElementById('login-password').value;
+                
+                if (!username || !password) {
+                    showToast('Veuillez remplir tous les champs', 'error');
+                    return;
+                }
+                
+                const users = getUsers();
+                const user = users.find(u => u.username === username);
+                
+                if (!user) {
+                    showToast('Identifiants incorrects', 'error');
+                    return;
+                }
+                
+                if (!verifyPassword(password, user.password)) {
+                    showToast('Identifiants incorrects', 'error');
+                    return;
+                }
+                
+                // Créer un objet utilisateur pour la session
+                const currentUser = {
+                    id: user.username,
+                    name: user.displayName || user.username,
+                    type: 'local'
+                };
+                
+                // Sauvegarder l'utilisateur courant
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                // Sauvegarder les préférences
+                const rememberMe = document.getElementById('remember-me').checked;
+                if (rememberMe) {
+                    localStorage.setItem('rememberedUser', user.username);
+                }
+                
+                // Redirection vers l'app
+                showToast(`Bienvenue ${currentUser.name} !`, 'success');
+                setTimeout(showApp, 1000);
+            }
+            
+            // Inscription
+            document.getElementById('signup-btn').addEventListener('click', registerUser);
+            
+            function registerUser() {
+                const username = document.getElementById('signup-username').value.trim();
+                const password = document.getElementById('signup-password').value;
+                const confirmation = document.getElementById('confirm-password').value;
+                
+                // Validation
+                if (!username || !password || !confirmation) {
+                    showToast('Veuillez remplir tous les champs', 'error');
+                    return;
+                }
+                
+                if (username.length < 3) {
+                    showToast('Le nom doit avoir au moins 3 caractères', 'error');
+                    return;
+                }
+                
+                if (password.length < 6) {
+                    showToast('Le mot de passe doit avoir au moins 6 caractères', 'error');
+                    return;
+                }
+                
+                if (password !== confirmation) {
+                    showToast('Les mots de passe ne correspondent pas', 'error');
+                    return;
+                }
+                
+                const users = getUsers();
+                
+                // Vérifier si l'utilisateur existe déjà
+                if (users.some(user => user.username === username)) {
+                    showToast('Ce nom est déjà pris', 'error');
+                    return;
+                }
+                
+                // Créer le nouvel utilisateur
+                const newUser = {
+                    username,
+                    password: hashPassword(password),
+                    displayName: username, // Par défaut, utiliser le nom d'utilisateur
+                    createdAt: new Date().toISOString(),
+                    tasks: []
+                };
+                
+                // Ajouter le nouvel utilisateur
+                users.push(newUser);
+                saveUsers(users);
+                
+                // Connecter le nouvel utilisateur automatiquement
+                const currentUser = {
+                    id: username,
+                    name: username,
+                    type: 'local'
+                };
+                
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                
+                showToast(`Compte créé avec succès, bienvenue ${username} !`, 'success');
+                setTimeout(showApp, 1500);
+            }
+            
+            // Fonction pour afficher l'interface de l'application
+            function showApp() {
+                console.log("Affichage de l'application");
+                // Obtenir l'utilisateur courant
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                
+                // Messages d'accueil amusants
+                const funnyWelcomeMessages = [
+                    "🍊 Prêt à dégommer votre liste?",
+                    "🚀 Votre journée va être par-faite!",
+                    "🔥 Tachons de faire ça avec douceur...",
+                    "🍪 Le café est prêt, votre liste aussi!",
+                    "🎯 On aime quand tout est cochée, non?",
+                    "👑 Mission organisation: accomplie!",
+                    "🥳 Les tâches n'ont qu'à bien se tenir!",
+                    "🚶‍♂️ Vous marchez sur l'eau? Je vous y crois.",
+                    "💪 Vous êtes une personne très organisée? Moi aussi.",
+                    "🌞 Quand il y a du soleil, on fait... des tâches!"
+                ];
+                
+                // Générer un message d'accueil aléatoire
+                const welcomeMessage = funnyWelcomeMessages[Math.floor(Math.random() * funnyWelcomeMessages.length)];
+                
+                // Créer l'avatar utilisateur
+                const avatarInitial = currentUser.name.charAt(0).toUpperCase();
+                
+                // Créer le contenu de l'application
+                document.getElementById('app-content').innerHTML = `
+                    <div class="container mx-auto px-4 py-8 flex-grow">
+                        <header class="text-center py-8 animate-fade-in">
+                            <div class="flex flex-col items-center mb-6">
+                                <div class="flex items-center justify-center">
+                                    <div class="user-avatar mr-4">
+                                        ${avatarInitial}
+                                    </div>
+                                    <h1 class="text-4xl md:text-5xl font-bold text-white drop-shadow-md">
+                                        <i class="fas fa-list-check mr-3"></i>
+                                        Todo Douceur
+                                    </h1>
+                                </div>
+                                
+                                <div class="mt-4 text-white text-xl italic flex flex-col md:flex-row items-center justify-center">
+                                    <div class="mr-2">Salut</div>
+                                    <div class="funny-message mx-2 flex items-center">
+                                        <i class="fas fa-star text-orange-300 mr-2"></i>
+                                        ${currentUser.name}
+                                        <i class="fas fa-star text-orange-300 ml-2"></i>
+                                    </div>
+                                    <div>!</div>
+                                </div>
+                                <div class="text-white mt-3 text-lg">
+                                    ${welcomeMessage}
+                                </div>
+                            </div>
+                            <div class="flex justify-center mb-4">
+                                <button id="account-settings" class="mx-2 bg-white bg-opacity-30 hover:bg-opacity-40 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2">
+                                    <i class="fas fa-cog"></i>
+                                    Compte
+                                </button>
+                                <button id="logout-btn" class="mx-2 bg-white bg-opacity-30 hover:bg-opacity-40 text-white px-4 py-2 rounded-lg transition-all flex items-center gap-2">
+                                    <i class="fas fa-sign-out-alt"></i>
+                                    Déconnexion
+                                </button>
+                            </div>
+                            <div class="text-sm text-white opacity-80 mt-2">
+                                Connecté avec: ${currentUser.type === 'local' ? 'Nom d\'utilisateur' : 'Google'} 
+                            </div>
+                        </header>
+
+                        <main class="bg-white bg-opacity-90 backdrop-blur-sm rounded-2xl p-6 shadow-xl animate-slide-in">
+                            <div class="flex gap-2 mb-6">
+                                <input 
+                                    type="text" 
+                                    id="taskInput" 
+                                    placeholder="Ajouter une nouvelle tâche..." 
+                                    class="flex-grow px-4 py-3 rounded-xl border border-orange-200 focus:border-orange-300 transition-all shadow-sm"
+                                >
+                                <button 
+                                    id="addTaskBtn" 
+                                    class="bg-gradient-to-r from-deepOrange to-mediumOrange text-white px-5 rounded-xl transition-all transform hover:scale-105 active:scale-95 shadow-md"
+                                >
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+
+                            <div class="flex justify-between items-center mb-4">
+                                <h2 class="text-xl font-semibold text-orange-900">
+                                    Mes Tâches
+                                </h2>
+                                <span id="taskCount" class="text-sm bg-orange-100 text-orange-800 px-3 py-1 rounded-full">
+                                    0 tâche(s)
+                                </span>
+                            </div>
+
+                            <div id="taskList" class="space-y-3 max-h-96 overflow-y-auto pr-2 py-1">
+                                <div id="emptyState" class="empty-state text-center py-12">
+                                    <i class="fas fa-cloud text-4xl text-orange-300 mb-4"></i>
+                                    <p class="text-orange-600 font-medium">Votre liste de tâches est vide</p>
+                                    <p class="text-orange-500 text-sm mt-1">Ajoutez votre première tâche pour commencer</p>
+                                </div>
+                            </div>
+                        </main>
+
+                        <footer class="text-center mt-6 text-white text-opacity-80 text-sm animate-fade-in">
+                            <p>✨ Tâchez de faire tout avec douceur ✨</p>
+                        </footer>
+                    </div>
+                `;
+                
+                // Afficher l'app et masquer les autres sections
+                document.getElementById('app-content').classList.remove('hidden');
+                document.getElementById('account-section').classList.add('hidden');
+                document.getElementById('welcome-section').classList.add('hidden');
+                
+                // Initialiser la logique de l'application
+                initTodoApp();
+                
+                // Gestion de la déconnexion
+                document.getElementById('logout-btn').addEventListener('click', logout);
+            }
+            
+            // Fonction pour déconnecter l'utilisateur
+            function logout() {
+                localStorage.removeItem('currentUser');
+                showToast('Déconnexion réussie', 'success');
+                setTimeout(() => {
+                    document.getElementById('app-content').classList.add('hidden');
+                    document.getElementById('account-section').classList.remove('hidden');
+                }, 1000);
+            }
+            
+            // Fonction pour afficher les toasts
+            function showToast(message, type) {
+                // Supprimer les toasts existants
+                const existingToasts = document.querySelectorAll('.toast');
+                existingToasts.forEach(toast => toast.remove());
+                
+                // Créer un toast
+                const toast = document.createElement('div');
+                toast.className = `toast fixed bottom-6 right-6 py-3 px-5 rounded-xl text-white font-medium flex items-center gap-2 transition-all transform ${type === 'success' ? 'bg-green-500' : 'bg-red-500'} slide-in`;
+                toast.innerHTML = `
+                    <i class="${type === 'success' ? 'fas fa-check-circle' : 'fas fa-exclamation-circle'}"></i>
+                    ${message}
+                `;
+                
+                document.body.appendChild(toast);
+                
+                // Supprimer après 3 secondes
+                setTimeout(() => {
+                    toast.classList.add('fade-out');
+                    setTimeout(() => {
+                        toast.remove();
+                    }, 300);
+                }, 3000);
+            }
+            
+            // Initialisation de la logique de l'application Todo
+            function initTodoApp() {
+                const taskInput = document.getElementById('taskInput');
+                const addTaskBtn = document.getElementById('addTaskBtn');
+                const taskList = document.getElementById('taskList');
+                const taskCount = document.getElementById('taskCount');
+                const emptyState = document.getElementById('emptyState');
+                
+                // Obtenir l'utilisateur actuel
+                const currentUser = JSON.parse(localStorage.getItem('currentUser'));
+                const users = getUsers();
+                const user = users.find(u => u.username === currentUser.id);
+                
+                // Charger les tâches de l'utilisateur
+                let userTasks = (user && user.tasks) || [];
+                
+                // Mettre à jour l'affichage du compteur de tâches
+                function updateTaskCount() {
+                    const totalTasks = userTasks.length;
+                    taskCount.textContent = `${totalTasks} tâche${totalTasks !== 1 ? 's' : ''}`;
+                    
+                    // Afficher/masquer l'état vide
+                    if (totalTasks === 0 && taskList.contains(emptyState) === false) {
+                        taskList.innerHTML = '';
+                        taskList.appendChild(emptyState);
+                        emptyState.classList.add('empty-state');
+                    } else if (totalTasks > 0 && taskList.contains(emptyState)) {
+                        emptyState.remove();
+                    }
+                }
+                
+                // Ajouter une animation et suppression après sortie
+                function animateTaskExit(taskElement) {
+                    taskElement.classList.add('task-exit');
+                    setTimeout(() => {
+                        taskElement.remove();
+                    }, 400);
+                }
+                
+                // Créer un élément de tâche
+                function createTaskElement(taskObj) {
+                    const taskElement = document.createElement('div');
+                    taskElement.className = 'task-item bg-white p-4 rounded-xl flex items-center gap-3 border border-orange-100 shadow-sm hover:shadow-md transition-all task-enter';
+                    taskElement.setAttribute('data-id', taskObj.id);
+                    
+                    if (taskObj.completed) {
+                        taskElement.classList.add('task-complete');
+                    }
+                    
+                    taskElement.innerHTML = `
+                        <input 
+                            type="checkbox" 
+                            class="checkbox-custom" 
+                            ${taskObj.completed ? 'checked' : ''}
+                        >
+                        <div class="flex-grow text-orange-900 transition-all ${taskObj.completed ? 'opacity-75' : ''}">
+                            ${taskObj.text}
+                        </div>
+                        <div class="flex gap-1">
+                            <button class="delete-btn text-orange-400 hover:text-deepOrange transition-colors p-1">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
+                    `;
+                    
+                    return taskElement;
+                }
+                
+                // Rendre toutes les tâches
+                function renderTasks() {
+                    taskList.innerHTML = '';
+                    
+                    if (userTasks.length === 0) {
+                        taskList.appendChild(emptyState);
+                        return;
+                    }
+                    
+                    userTasks.forEach(task => {
+                        const taskElement = createTaskElement(task);
+                        taskList.appendChild(taskElement);
+                    });
+                    
+                    addTaskListeners();
+                }
+                
+                // Ajouter des écouteurs d'événements
+                function addTaskListeners() {
+                    document.querySelectorAll('.delete-btn').forEach(btn => {
+                        btn.addEventListener('click', function() {
+                            const taskId = this.closest('.task-item').getAttribute('data-id');
+                            animateTaskExit(this.closest('.task-item'));
+                            userTasks = userTasks.filter(task => task.id !== taskId);
+                            saveUserTasks();
+                            updateTaskCount();
+                        });
+                    });
+                    
+                    document.querySelectorAll('.checkbox-custom').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const taskId = this.closest('.taskItem').getAttribute('data-id');
+                            const taskIndex = userTasks.findIndex(task => task.id === taskId);
+                            
+                            if (taskIndex !== -1) {
+                                userTasks[taskIndex].completed = this.checked;
+                                this.nextElementSibling.classList.toggle('opacity-75', this.checked);
+                                this.closest('.task-item').classList.toggle('task-complete', this.checked);
+                                saveUserTasks();
+                            }
+                        });
+                    });
+                }
+                
+                // Sauvegarder les tâches de l'utilisateur
+                function saveUserTasks() {
+                    const users = getUsers();
+                    const userIndex = users.findIndex(u => u.username === currentUser.id);
+                    
+                    if (userIndex !== -1) {
+                        users[userIndex].tasks = userTasks;
+                        saveUsers(users);
+                    }
+                }
+                
+                // Ajouter une nouvelle tâche
+                function addTask() {
+                    const text = taskInput.value.trim();
+                    
+                    if (text === '') {
+                        taskInput.classList.add('animate-shake');
+                        setTimeout(() => {
+                            taskInput.classList.remove('animate-shake');
+                        }, 500);
+                        return;
+                    }
+                    
+                    const taskObj = {
+                        id: Date.now().toString(),
+                        text: text,
+                        completed: false,
+                        createdAt: new Date()
+                    };
+                    
+                    userTasks.unshift(taskObj);
+                    
+                    const taskElement = createTaskElement(taskObj);
+                    
+                    if (emptyState.parentNode === taskList) {
+                        taskList.innerHTML = '';
+                    }
+                    
+                    taskList.prepend(taskElement);
+                    
+                    // Ajouter les écouteurs d'événements
+                    addTaskListeners();
+                    
+                    // Réinitialiser et sauvegarder
+                    taskInput.value = '';
+                    taskInput.focus();
+                    saveUserTasks();
+                    updateTaskCount();
+                    
+                    // Animation
+                    addTaskBtn.classList.add('animate-bounce-light');
+                    setTimeout(() => {
+                        addTaskBtn.classList.remove('animate-bounce-light');
+                    }, 1000);
+                }
+                
+                // Écouteurs d'événements
+                addTaskBtn.addEventListener('click', addTask);
+                
+                taskInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        addTask();
+                    }
+                });
+                
+                // Initialiser
+                updateTaskCount();
+                renderTasks();
+            }
+            
+            // Gestion du bouton Google
+            document.getElementById('google-signin-btn').addEventListener('click', () => {
+                // Afficher la section de choix de nom
+                document.getElementById('account-section').classList.add('hidden');
+                document.getElementById('welcome-section').classList.remove('hidden');
+            });
+            
+            // Gestion du choix de nom après Google
+            document.getElementById('finish-setup-btn').addEventListener('click', () => {
+                const customName = document.getElementById('custom-name').value.trim();
+                
+                if (!customName) {
+                    showToast('Veuillez choisir un nom', 'error');
+                    return;
+                }
+                
+                // Générer un email Google factice
+                const firstNames = ["Élodie", "Jean", "Sophie", "Thomas", "Camille", "Nicolas", "Marie", "Pierre", "Julie", "David"];
+                const lastNames = ["Dupont", "Martin", "Leroy", "Moreau", "Garcia", "Bernard", "Richard", "Petit", "Roux", "Michel"];
+                
+                const firstName = firstNames[Math.floor(Math.random() * firstNames.length)];
+                const lastName = lastNames[Math.floor(Math.random() * lastNames.length)];
+                
+                const fakeEmail = `${firstName.toLowerCase()}${lastName.toLowerCase()}${Math.floor(1000 + Math.random() * 9000)}@gmail.com`;
+                
+                // Créer un objet utilisateur Google
+                const googleUser = {
+                    id: fakeEmail,
+                    name: customName,
+                    googleName: `${firstName} ${lastName}`,
+                    email: fakeEmail,
+                    type: 'google'
+                };
+                
+                // Sauvegarder l'utilisateur
+                localStorage.setItem('currentUser', JSON.stringify(googleUser));
+                
+                // Créer un message de bienvenue personnalisé
+                showToast(`Bienvenue ${customName}!`, 'success');
+                
+                // Rediriger vers l'app
+                setTimeout(showApp, 1000);
+            });
+            
+            // Gestion du choix de nom rapide
+            document.querySelectorAll('.name-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.name-option').forEach(o => o.classList.remove('selected'));
+                    option.classList.add('selected');
+                    document.getElementById('custom-name').value = option.dataset.name;
+                });
+            });
+        });
+    </script>
+</body>
+</html>
