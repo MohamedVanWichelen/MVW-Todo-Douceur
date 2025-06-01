@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MVW |Todo Douceur</title>
+    <title>Todo Douceur - Système utilisateur</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
@@ -64,8 +64,11 @@
         }
         
         .task-complete {
-            text-decoration: line-through;
             opacity: 0.7;
+        }
+
+        .task-complete .flex-grow {
+            text-decoration: line-through;
         }
         
         .gradient-bg {
@@ -1061,15 +1064,17 @@
                 // Obtenir l'utilisateur actuel
                 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
                 const users = getUsers();
-                const user = users.find(u => u.username === currentUser.id);
+                const userIndex = users.findIndex(u => u.username === currentUser.id);
                 
                 // Charger les tâches de l'utilisateur
-                let userTasks = (user && user.tasks) || [];
+                let userTasks = (userIndex !== -1 && users[userIndex].tasks) || [];
                 
                 // Mettre à jour l'affichage du compteur de tâches
                 function updateTaskCount() {
                     const totalTasks = userTasks.length;
-                    taskCount.textContent = `${totalTasks} tâche${totalTasks !== 1 ? 's' : ''}`;
+                    const completedTasks = userTasks.filter(t => t.completed).length;
+                    
+                    taskCount.textContent = `${completedTasks}/${totalTasks} tâche(s)`;
                     
                     // Afficher/masquer l'état vide
                     if (totalTasks === 0 && taskList.contains(emptyState) === false) {
@@ -1092,12 +1097,8 @@
                 // Créer un élément de tâche
                 function createTaskElement(taskObj) {
                     const taskElement = document.createElement('div');
-                    taskElement.className = 'task-item bg-white p-4 rounded-xl flex items-center gap-3 border border-orange-100 shadow-sm hover:shadow-md transition-all task-enter';
+                    taskElement.className = `task-item bg-white p-4 rounded-xl flex items-center gap-3 border border-orange-100 shadow-sm hover:shadow-md transition-all task-enter ${taskObj.completed ? 'task-complete' : ''}`;
                     taskElement.setAttribute('data-id', taskObj.id);
-                    
-                    if (taskObj.completed) {
-                        taskElement.classList.add('task-complete');
-                    }
                     
                     taskElement.innerHTML = `
                         <input 
@@ -1105,7 +1106,7 @@
                             class="checkbox-custom" 
                             ${taskObj.completed ? 'checked' : ''}
                         >
-                        <div class="flex-grow text-orange-900 transition-all ${taskObj.completed ? 'opacity-75' : ''}">
+                        <div class="flex-grow text-orange-900">
                             ${taskObj.text}
                         </div>
                         <div class="flex gap-1">
@@ -1127,7 +1128,10 @@
                         return;
                     }
                     
-                    userTasks.forEach(task => {
+                    // Trier par statut de complétion (non complétées en premier)
+                    const sortedTasks = [...userTasks].sort((a, b) => a.completed - b.completed);
+                    
+                    sortedTasks.forEach(task => {
                         const taskElement = createTaskElement(task);
                         taskList.appendChild(taskElement);
                     });
@@ -1149,14 +1153,14 @@
                     
                     document.querySelectorAll('.checkbox-custom').forEach(checkbox => {
                         checkbox.addEventListener('change', function() {
-                            const taskId = this.closest('.taskItem').getAttribute('data-id');
+                            const taskId = this.closest('.task-item').getAttribute('data-id');
                             const taskIndex = userTasks.findIndex(task => task.id === taskId);
                             
                             if (taskIndex !== -1) {
                                 userTasks[taskIndex].completed = this.checked;
-                                this.nextElementSibling.classList.toggle('opacity-75', this.checked);
                                 this.closest('.task-item').classList.toggle('task-complete', this.checked);
                                 saveUserTasks();
+                                updateTaskCount();
                             }
                         });
                     });
@@ -1170,6 +1174,19 @@
                     if (userIndex !== -1) {
                         users[userIndex].tasks = userTasks;
                         saveUsers(users);
+                    } else if (currentUser.type === 'google') {
+                        // Sauvegarde spécifique pour les utilisateurs Google
+                        const googleUsers = JSON.parse(localStorage.getItem('googleUsers')) || [];
+                        const googleUserIndex = googleUsers.findIndex(u => u.id === currentUser.id);
+                        
+                        if (googleUserIndex !== -1) {
+                            googleUsers[googleUserIndex].tasks = userTasks;
+                            localStorage.setItem('googleUsers', JSON.stringify(googleUsers));
+                        } else {
+                            currentUser.tasks = userTasks;
+                            googleUsers.push(currentUser);
+                            localStorage.setItem('googleUsers', JSON.stringify(googleUsers));
+                        }
                     }
                 }
                 
@@ -1263,11 +1280,24 @@
                     name: customName,
                     googleName: `${firstName} ${lastName}`,
                     email: fakeEmail,
-                    type: 'google'
+                    type: 'google',
+                    tasks: [] // Ajouter une propriété tasks pour sauvegarder les tâches
                 };
                 
                 // Sauvegarder l'utilisateur
                 localStorage.setItem('currentUser', JSON.stringify(googleUser));
+                
+                // Sauvegarder dans un système spécifique pour Google
+                const googleUsers = JSON.parse(localStorage.getItem('googleUsers')) || [];
+                const existingUserIndex = googleUsers.findIndex(u => u.email === fakeEmail);
+                
+                if (existingUserIndex !== -1) {
+                    googleUsers[existingUserIndex] = googleUser;
+                } else {
+                    googleUsers.push(googleUser);
+                }
+                
+                localStorage.setItem('googleUsers', JSON.stringify(googleUsers));
                 
                 // Créer un message de bienvenue personnalisé
                 showToast(`Bienvenue ${customName}!`, 'success');
